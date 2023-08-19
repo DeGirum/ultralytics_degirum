@@ -70,7 +70,7 @@ class Detect(nn.Module):
         x_cat = torch.cat([xi.view(shape[0], self.no, -1) for xi in x], 2)
         
         if self.export: # avoid TF FlexSplitV ops
-            if self.format in ('saved_model', 'pb', 'tflite', 'edgetpu', 'tfjs') and not self.separate_6_outputs:
+            if self.format in ('onnx', 'saved_model', 'pb', 'tflite', 'edgetpu', 'tfjs') and not self.separate_6_outputs:
                 box = x_cat[:, :self.reg_max * 4]
                 cls = x_cat[:, self.reg_max * 4:]
             if self.separate_6_outputs:

@@ -66,8 +66,14 @@ class DetectionValidator(BaseValidator):
         return ('%22s' + '%11s' * 6) % ('Class', 'Images', 'Instances', 'Box(P', 'R', 'mAP50', 'mAP50-95)')
 
     def decode_bbox(self, preds):
-        x = torch.permute(torch.cat((torch.cat(preds[:3], 1), torch.cat(preds[3:], 1)), 2), (0, 2, 1))  # concat 6 output tensors
+        # shape of the following x -> torch.Size([1, 65, 8400])
+        x = torch.permute(torch.cat((torch.cat([preds[0], preds[1], preds[4]], 1) , torch.cat([preds[3], preds[2], preds[5]], 1)), 2), (0, 2, 1))#.unsqueeze(0)
+        # x = torch.permute(torch.cat(preds, dim=2), (0, 2, 1))
+        # x = torch.permute(torch.cat((torch.cat(preds[:3], 1), torch.cat(preds[3:], 1)), 2), (0, 2, 1))  # concat 6 output tensors
+        print(x.shape[1] ,self.nc)
+        # self.nc = 1
         reg_max = (x.shape[1] - self.nc) // 4
+        print(reg_max)
         dfl = DFL(reg_max) if reg_max > 1 else torch.nn.Identity()
         img_h, img_w = self.imgsz, self.imgsz  # TODO: make work for rectangular imgsz
         dims = [(img_h // 8, img_w // 8), (img_h // 16, img_w // 16), (img_h // 32, img_w // 32)]  # TODO: don't have hardcoded 8, 16, 32
@@ -79,6 +85,8 @@ class DetectionValidator(BaseValidator):
     def postprocess(self, preds):
         """Apply Non-maximum suppression to prediction outputs."""
         if len(preds) == 6:  # DeGirum export
+            # for pred in preds:
+            #     print(pred.shape)
             preds = self.decode_bbox(preds)
         return ops.non_max_suppression(preds,
                                        self.args.conf,

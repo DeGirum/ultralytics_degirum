@@ -358,6 +358,7 @@ class AutoBackend(nn.Module):
         elif self.triton:  # NVIDIA Triton Inference Server
             y = self.model(im)
         else:  # TensorFlow (SavedModel, GraphDef, Lite, Edge TPU)
+            print("1")
             im = im.cpu().numpy()
             if self.saved_model:  # SavedModel
                 y = self.model(im, training=False) if self.keras else self.model(im)
@@ -374,7 +375,11 @@ class AutoBackend(nn.Module):
                 int8 = input['dtype'] == np.int8  # is TFLite quantized int8 model
                 if int8:
                     scale, zero_point = input['quantization']
-                    im = (im / scale + zero_point).astype(np.int8)  # de-scale
+                    im = (im / scale + zero_point).astype(np.int8)   # de-scale
+                if input['dtype'] == np.uint8:
+                    scale, zero_point = input['quantization']
+                    im = (im / scale + zero_point).astype(np.uint8)   # de-scale
+                
                 self.interpreter.set_tensor(input['index'], im)
                 self.interpreter.invoke()
                 y = []
@@ -383,6 +388,9 @@ class AutoBackend(nn.Module):
                     if int8:
                         scale, zero_point = output['quantization']
                         x = (x.astype(np.float32) - zero_point) * scale  # re-scale
+                    if output['dtype'] == np.uint8:
+                        scale, zero_point = output['quantization']
+                        x = (x.astype(np.float32) - zero_point) * scale
                     y.append(x)
             # TF segment fixes: export is reversed vs ONNX export and protos are transposed
             if len(y) == 2:  # segment with (det, proto) output order reversed

@@ -8,19 +8,19 @@ import sys
 python3 quantize.py <path/to/saved_model> <path/to/dataset>
 '''
 
-image_shape = tflite.Interpreter(self.model_path).get_input_details()[0]['shape']
+# image_shape = tflite.Interpreter(self.model_path).get_input_details()[0]['shape']
 def representative_dataset_gen():
     folder_path = sys.argv[-1]
     image_files = os.listdir(folder_path)
     for image_file in image_files:
         image = cv2.imread(folder_path +"/"+image_file)
-        resized_image = cv2.resize(image, image_shape[:-1])
+        resized_image = cv2.resize(image, (640, 640))#image_shape[:-1])
         resized_image = resized_image.astype(np.float32) / 255.0
         resized_image = np.expand_dims(resized_image, axis=0)
         image_tensor = tf.convert_to_tensor(resized_image)
         yield [image_tensor]
 
-converter = tf.lite.TFLiteConverter.from_saved_model(sys.argv[-2],)
+converter = tf.lite.TFLiteConverter.from_saved_model("./saved_model/")
 
 # Full Integer Quantization
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -37,7 +37,7 @@ converter.inference_input_type = inf_type
 converter.inference_output_type = inf_type
 tflite_model = converter.convert()
 
-with open(sys.argv[-2], 'wb') as w:
+with open("relu6-yolov8-int8.tflite", 'wb') as w:
     w.write(tflite_model)
 
 
